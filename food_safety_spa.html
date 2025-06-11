@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Food Safety Course</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: A two-column dashboard layout. The left column provides a persistent navigation list of the 10 modules, allowing users to easily jump between topics. The right column is the main content display, dynamically showing the selected module's details (Focus and Activities). A "Mark as Complete" button for each module updates a "Course Progress" doughnut chart and the navigation UI, providing interactive feedback and a gamified sense of accomplishment. This structure was chosen to transform a static list into an interactive and non-linear learning path, which is more engaging for students than a simple document. -->
+    <!-- Visualization & Content Choices: 
+        1. Course Modules List -> Goal: Organize/Navigate -> Method: Interactive HTML/Tailwind list -> Interaction: Click to update main view, visual state change on completion -> Justification: Provides a clear, persistent 'table of contents' for the course.
+        2. Module Details -> Goal: Inform -> Method: Dynamic HTML text blocks -> Interaction: Content updates based on nav clicks; "Mark as Complete" button -> Justification: Focuses user attention on one topic at a time, reducing cognitive load.
+        3. Course Progress -> Goal: Compare (Complete vs. Incomplete) -> Method: Chart.js Doughnut Chart -> Interaction: Dynamically updates when modules are marked complete -> Justification: Offers immediate, motivating visual feedback on student progress.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 250px;
+            height: 250px;
+            margin: auto;
+        }
+        .nav-item.active {
+            background-color: #D1FAE5; /* A light green for active state */
+            color: #065F46; /* A dark green for text */
+            font-weight: 600;
+        }
+        .nav-item.completed {
+            background-color: #F3F4F6;
+            color: #6B7280;
+            text-decoration: line-through;
+        }
+        .nav-item.completed .check-icon {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Food Safety Course Roadmap</h1>
+            <p class="mt-2 text-md text-gray-600">An interactive guide for culinary arts students.</p>
+        </header>
+
+        <main class="bg-white rounded-xl shadow-lg p-4 md:p-6 lg:p-8">
+            <div class="lg:grid lg:grid-cols-12 lg:gap-8">
+                
+                <aside class="lg:col-span-4 xl:col-span-3 mb-8 lg:mb-0">
+                    <h2 class="text-lg font-semibold mb-4 text-gray-700">Course Modules</h2>
+                    <nav id="module-nav" class="space-y-2">
+                    </nav>
+                </aside>
+
+                <section id="module-content" class="lg:col-span-8 xl:col-span-9">
+                    <div class="bg-gray-100 rounded-lg p-6 mb-6">
+                        <h3 class="text-xl font-bold text-center mb-4 text-gray-800">Your Progress</h3>
+                        <div class="chart-container">
+                             <canvas id="progressChart"></canvas>
+                        </div>
+                         <p id="progress-text" class="text-center text-sm text-gray-600 mt-3">Select a module to get started!</p>
+                    </div>
+
+                    <div id="content-display" class="min-h-[400px]">
+                    </div>
+                </section>
+
+            </div>
+        </main>
+
+        <footer class="text-center mt-8 text-sm text-gray-500">
+            <p>Click on a module to explore its content and mark it as complete to track your progress.</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const moduleData = [
+                { id: 0, title: "Introduction to Food Safety", focus: "Why food safety matters, potential risks, and the role of culinary professionals.", activities: ["Define food safety", "Explore historical outbreaks", "Personal responsibility", "Economic impact of foodborne illness"] },
+                { id: 1, title: "Biological Hazards", focus: "Understanding common foodborne pathogens, their sources, and conditions for growth.", activities: ["Differentiate types of pathogens", "Explore common culprits (e.g., Salmonella, Norovirus)", "How they spread", "FAT TOM principles"] },
+                { id: 2, title: "Chemical and Physical Hazards", focus: "Identifying and preventing contamination from cleaning agents, pesticides, natural toxins, and foreign objects.", activities: ["Classify chemical hazards", "Identify physical hazards", "Safe storage of chemicals", "Proper handling of equipment"] },
+                { id: 3, title: "Personal Hygiene", focus: "The critical role of handwashing, proper attire, health reporting, and avoiding cross-contamination through personal habits.", activities: ["Handwashing techniques", "Glove use", "Appropriate work attire", "Managing cuts/wounds", "Employee sickness policies"] },
+                { id: 4, title: "Safe Food Handling", focus: "Best practices for receiving deliveries, proper refrigeration, freezer storage, dry storage, and labeling.", activities: ["Inspecting deliveries", "Temperature guidelines", "FIFO method", "Proper storage containers", "Labeling requirements"] },
+                { id: 5, title: "Preventing Cross-Contamination", focus: "Understanding how contaminants spread and implementing strategies to prevent it at every stage of food preparation.", activities: ["Separating raw/cooked foods", "Dedicated equipment", "Cleaning and sanitizing surfaces", "Proper cutting board use"] },
+                { id: 6, title: "Cooking & Holding Temperatures", focus: "Achieving safe internal cooking temperatures for various foods and maintaining safe holding temperatures.", activities: ["Using thermometers", "Minimum internal temperatures", "Hot holding & Cold holding", "Reheating foods safely"] },
+                { id: 7, title: "Cleaning and Sanitizing", focus: "The difference between cleaning and sanitizing, and proper methods for equipment, utensils, and surfaces.", activities: ["Step-by-step cleaning process", "Types of sanitizers", "Dishwashing procedures", "Cleaning schedules"] },
+                { id: 8, title: "Pest Control & Facility", focus: "Identifying common pests, prevention strategies, and the importance of facility design and maintenance.", activities: ["Signs of pest infestation", "Integrated Pest Management (IPM)", "Facility layout for hygiene", "Waste management"] },
+                { id: 9, title: "Regulations and HACCP", focus: "Introduction to local food safety regulations, critical control points (HACCP), and self-inspection.", activities: ["Overview of food safety laws", "Identifying CCPs in a food flow", "Monitoring and corrective actions", "Record-keeping"] }
+            ];
+
+            let activeModuleId = 0;
+            let completedModules = new Set();
+
+            const navContainer = document.getElementById('module-nav');
+            const contentContainer = document.getElementById('content-display');
+            const progressText = document.getElementById('progress-text');
+
+            const renderNav = () => {
+                navContainer.innerHTML = '';
+                moduleData.forEach(module => {
+                    const isCompleted = completedModules.has(module.id);
+                    const isActive = module.id === activeModuleId;
+
+                    const navItem = document.createElement('a');
+                    navItem.href = '#';
+                    navItem.dataset.id = module.id;
+                    navItem.className = `nav-item flex items-center justify-between p-3 rounded-lg text-sm font-medium transition-colors duration-200 ${isCompleted ? 'completed' : 'hover:bg-gray-100'} ${isActive && !isCompleted ? 'active' : ''}`;
+                    
+                    navItem.innerHTML = `
+                        <span>${module.id + 1}. ${module.title}</span>
+                        <span class="check-icon opacity-0 transition-opacity ml-2 text-green-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                        </span>
+                    `;
+                    
+                    if(isCompleted) {
+                         navItem.querySelector('.check-icon').style.opacity = '1';
+                    }
+                    
+                    navItem.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        activeModuleId = module.id;
+                        render();
+                    });
+                    navContainer.appendChild(navItem);
+                });
+            };
+            
+            const renderContent = () => {
+                const module = moduleData[activeModuleId];
+                if (!module) return;
+
+                const isCompleted = completedModules.has(module.id);
+                
+                contentContainer.innerHTML = `
+                    <div class="fade-in">
+                        <h2 class="text-2xl font-bold text-gray-900">${module.id + 1}. ${module.title}</h2>
+                        <div class="mt-4 border-t pt-4">
+                            <h4 class="font-semibold text-lg text-gray-700">Module Focus:</h4>
+                            <p class="mt-1 text-gray-600">${module.focus}</p>
+                        </div>
+                        <div class="mt-6">
+                            <h4 class="font-semibold text-lg text-gray-700">Key Learning Activities:</h4>
+                            <ul class="mt-2 list-disc list-inside space-y-2 text-gray-600">
+                                ${module.activities.map(activity => `<li>${activity}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="mt-8 text-center">
+                            <button id="complete-btn" class="px-6 py-3 font-semibold rounded-lg transition-colors duration-200 ${isCompleted ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}" ${isCompleted ? 'disabled' : ''}>
+                                ${isCompleted ? 'Module Completed!' : 'Mark as Complete'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                if (!isCompleted) {
+                    document.getElementById('complete-btn').addEventListener('click', () => {
+                        completedModules.add(activeModuleId);
+                        render();
+                    });
+                }
+            };
+            
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            let progressChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Remaining'],
+                    datasets: [{
+                        data: [0, moduleData.length],
+                        backgroundColor: ['#10B981', '#E5E7EB'],
+                        borderColor: ['#ffffff', '#ffffff'],
+                        borderWidth: 4,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
+                }
+            });
+
+            const updateChart = () => {
+                const completedCount = completedModules.size;
+                const remainingCount = moduleData.length - completedCount;
+                progressChart.data.datasets[0].data[0] = completedCount;
+                progressChart.data.datasets[0].data[1] = remainingCount;
+                progressChart.update();
+                
+                progressText.textContent = `${completedCount} of ${moduleData.length} modules completed.`;
+            };
+
+            const render = () => {
+                renderNav();
+                renderContent();
+                updateChart();
+            };
+
+            render();
+        });
+    </script>
+</body>
+</html>
